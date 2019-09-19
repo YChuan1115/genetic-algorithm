@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <functional>
 #include <random>
 
@@ -86,6 +87,10 @@ private:
         for(auto& str:population_){
             str.setFit() = calcFitness(str);
         }
+    }
+
+    void calcStdDev(){
+
     }
 
 public:
@@ -194,8 +199,6 @@ void GeneticAlgorithm<PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::initialization(){
 
-
-
     for(auto& str:population_){
         DV* dv =  str.designVariables();
         for(auto& v:(*dv)){
@@ -250,12 +253,26 @@ void GeneticAlgorithm<PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::crossover(){
     constexpr int MINIMUM_SITE(.25 * PopulationSize);
-    int site(uniIntDist(MINIMUM_SITE, PopulationSize - 1));
 
-    int selected_str1(uniIntDist(0, PopulationSize - 1));
-    int selected_str2(uniIntDist(0, PopulationSize - 1));
+    std::vector<std::pair<size_t, size_t > > selected_str;
 
-    for(int i(site); i < (NumDesignVariables * DesignVariableSize); i++){
+    for(int i(0); i < PopulationSize; i++){
+        if(randProb() > crossover_prob_)
+            selected_str.push_back(std::make_pair(i, uniIntDist(MINIMUM_SITE, PopulationSize - 1)));
+    }
+    // to make the loop index
+    selected_str.push_back(selected_str.front());
+
+    for(size_t i(0); i < (selected_str.size() - 1); i++){
+        DV* dv1(population_[selected_str[i].first].designVariables());
+        DV* dv2(population_[selected_str[i+1].first].designVariables());
+
+        DV sub;
+        sub.resize(PopulationSize - selected_str[i].first);
+        std::transform(sub.begin(), dv1->begin() +  selected_str[i].second, dv1->end(), [](DV dv){return dv;});
+
+        std::transform(dv1->begin(), dv2->begin() + selected_str[i+1].first, dv2->end(), [](DV dv){return dv;});
+        std::transform(dv2->begin(), sub.begin(), sub.end(), [](DV dv){return dv;});
 
     }
 
@@ -276,5 +293,10 @@ template <int PopulationSize,
 void GeneticAlgorithm<PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::generations(){
+    for(int gen(0); gen < num_generations_; gen++){
+        reproduction();
+        crossover();
+        mutation();
+    }
 
 }

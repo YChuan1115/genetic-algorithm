@@ -14,6 +14,10 @@ public:
         design_variables_ = new DesignVariables;
     }
 
+    ~Chromosome(){
+        delete design_variables_;
+    }
+
     double fit;
     double probability;
     double cumulative_prob;
