@@ -57,6 +57,7 @@ int main(int argc, char** argv){
 
     genetic.initialization();
 
+    //test print
     for(auto p:genetic.population()){
         GA::DV* dv = p.designVariables();
         for(auto v:(*dv)){

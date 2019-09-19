@@ -89,8 +89,24 @@ private:
         }
     }
 
-    void calcStdDev(){
+    double totalFitness(){
+        auto total_fitness(.0);
+        for(auto& str:population_){
+            str.setFit() = calcFitness(str);
+            total_fitness += str.getFit();
+        }
+        return total_fitness;
+    }
 
+    double calcStdDev(){
+        auto fitness_avg(totalFitness() / PopulationSize);
+
+        auto var(.0);
+        for(auto str:population_){
+            var += std::pow((str.getFit() - fitness_avg), 2);
+        }
+
+        return std::sqrt(var);
     }
 
 public:
@@ -200,7 +216,7 @@ void GeneticAlgorithm<PopulationSize,
                       DesignVariableSize>::initialization(){
 
     for(auto& str:population_){
-        DV* dv =  str.designVariables();
+        DV* dv(str.designVariables());
         for(auto& v:(*dv)){
             v.value = rand_bit_(rand_gen_);
         }
@@ -214,10 +230,7 @@ void GeneticAlgorithm<PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::reproduction(){
 
-    auto total_fitness(.0);
-    for(auto str:population_){
-        total_fitness += str.getFit(str);
-    }
+    auto total_fitness(totalFitness());
 
     population_.front().setProb() = population_.front().getFit() / total_fitness;
     population_.front().setCumulativeProb() = population_.front().getProb();
@@ -260,7 +273,7 @@ void GeneticAlgorithm<PopulationSize,
         if(randProb() > crossover_prob_)
             selected_str.push_back(std::make_pair(i, uniIntDist(MINIMUM_SITE, PopulationSize - 1)));
     }
-    // to make the loop index
+    // to make the loop index, just donate a little bit of memory
     selected_str.push_back(selected_str.front());
 
     for(size_t i(0); i < (selected_str.size() - 1); i++){
@@ -284,7 +297,13 @@ template <int PopulationSize,
 void GeneticAlgorithm<PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::mutation(){
-
+    for(auto& str:population_){
+        if(randProb() > mutation_prob_){
+            size_t site(uniIntDist(0, DesignVariableSize - 1));
+            DV* dv(str.designVariables());
+            (*dv)[site] = ~(*dv)[site];
+        }
+    }
 }
 
 template <int PopulationSize,
@@ -297,6 +316,9 @@ void GeneticAlgorithm<PopulationSize,
         reproduction();
         crossover();
         mutation();
+
+        if(calcStdDev() < std_dev_tol_)
+            break;
     }
 
 }
