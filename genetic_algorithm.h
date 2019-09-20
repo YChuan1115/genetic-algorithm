@@ -34,6 +34,8 @@ public:
         double gain;
     };
 
+    void generations();
+
 private:
     using Population = std::vector<GAStr >;
 
@@ -42,9 +44,7 @@ private:
     // genetic operator
     void reproduction();
     void crossover();
-    void mutation();
-
-    void generations();
+    void mutation();    
 
     using Objective = std::function<double(GAStr) >;
     Objective objective_;
@@ -280,12 +280,15 @@ void GeneticAlgorithm<PopulationSize,
         DV* dv1(population_[selected_str[i].first].designVariables());
         DV* dv2(population_[selected_str[i+1].first].designVariables());
 
-        DV sub;
-        sub.resize(PopulationSize - selected_str[i].first);
-        std::transform(sub.begin(), dv1->begin() +  selected_str[i].second, dv1->end(), [](DV dv){return dv;});
+//        DV sub;
+        using SubGAString = std::vector<GAStr::Allele >;
+        SubGAString sub(PopulationSize - selected_str[i].first);
+//        SubDV* sub_dv = sub.designVariables();
+//        sub.resize(PopulationSize - selected_str[i].first);
+        std::transform(sub_dv->begin(), dv1->begin() + selected_str[i].second, dv1->end(), [](GAStr::Allele allele){return allele;});
 
-        std::transform(dv1->begin(), dv2->begin() + selected_str[i+1].first, dv2->end(), [](DV dv){return dv;});
-        std::transform(dv2->begin(), sub.begin(), sub.end(), [](DV dv){return dv;});
+        std::transform(dv1->begin(), dv2->begin() + selected_str[i+1].first, dv2->end(), [](GAStr::Allele allele){return allele;});
+        std::transform(dv2->begin(), sub_dv->begin(), sub_dv->end(), [](GAStr::Allele allele){return allele;});
 
     }
 
@@ -297,6 +300,7 @@ template <int PopulationSize,
 void GeneticAlgorithm<PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::mutation(){
+    // bit-wise mutation
     for(auto& str:population_){
         if(randProb() > mutation_prob_){
             size_t site(uniIntDist(0, DesignVariableSize - 1));

@@ -1,3 +1,8 @@
+/**
+* @author : koseng (Lintang)
+* @brief : Chromosome
+*/
+
 #pragma once
 
 #include <array>

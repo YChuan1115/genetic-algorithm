@@ -8,7 +8,7 @@
 
 template <int NumAlleles>
 class GAString{
-private:
+public:
     struct BinaryAllele{
         using byte = unsigned char;
         byte value;
@@ -21,13 +21,8 @@ private:
         }
     };
 
-public:
+    using Allele = BinaryAllele;
     using Chr = Chromosome<BinaryAllele, NumAlleles >;
-
-private:
-    Chr chromosome_;
-
-    typename Chr::DesignVariables* dv_;
 
 public:
     GAString(){
@@ -61,5 +56,10 @@ public:
     inline double& setCumulativeProb(){
         return chromosome_.cumulative_prob;
     }
+
+private:
+    Chr chromosome_;
+
+    typename Chr::DesignVariables* dv_;
 
 };
