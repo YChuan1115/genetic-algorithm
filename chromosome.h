@@ -8,7 +8,7 @@
 #include <array>
 #include <vector>
 
-template <class Allele, int NumAllele>
+template <typename Allele, int NumAllele>
 class Chromosome{
 public:
     using DesignVariables = std::array<Allele, NumAllele >;
@@ -20,7 +20,7 @@ public:
     }
 
     ~Chromosome(){
-        delete design_variables_;
+//        delete design_variables_;
     }
 
     double fit;

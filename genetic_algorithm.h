@@ -8,19 +8,47 @@
 #include <algorithm>
 #include <functional>
 #include <random>
+#include <iostream>
 
 #include "ga_string.h"
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
 class GeneticAlgorithm{
 public:
     GeneticAlgorithm();
-    ~GeneticAlgorithm();
+    ~GeneticAlgorithm();    
 
-    using GAStr = GAString<DesignVariableSize * NumDesignVariables >;
+    struct BinaryAllele{
+        using byte = unsigned char;
+        byte value;
+        BinaryAllele():value(0){}
+        BinaryAllele& operator~(){
+            value = (value) ? 0 : 1;
+            return *this;
+        }
+    };
+
+    struct ContinuousAllele{
+        double value;
+        ContinuousAllele():value(.0){}
+        ContinuousAllele& operator~(){
+            value = randProb() * 100.;
+            return *this;
+        }
+    };
+
+    using GAStr = GAString<
+                    std::conditional<
+                        std::is_same<Type, double>::value,
+                        ContinuousAllele,
+                        BinaryAllele>,
+                    DesignVariableSize * NumDesignVariables>;
     using DV = typename GAStr::Chr::DesignVariables;
+    using Allele = typename GAStr::Allele;
+    using SubGAString = std::vector<Allele >;
 
     struct InequalityConstraint{
     public:
@@ -56,19 +84,17 @@ private:
     EqCstrs eq_cstrs_;
 
     inline double penalty(const GAStr& _str){
-        double result(.0);
-
+        auto result(.0);
         result += objective_(_str);
 
         auto pen(.0);
-
         for(auto ineq:ineq_cstrs_){
             pen = bracketing(ineq.constraint(_str));
             result += ineq.gain * pen * pen;
         }
 
         for(auto eq:eq_cstrs_){
-            pen = eq.contraint(_str);
+            pen = eq.constraint(_str);
             result += eq.gain * pen * pen;
         }
 
@@ -76,11 +102,11 @@ private:
     }
 
     inline double bracketing(double _value){
-        return _value > 0 ? _value : 0;
+        return _value > .0 ? _value : .0;
     }
 
     inline double calcFitness(const GAStr& _str){
-        return 1.0/(1.0 + penalty(_str));
+        return 1./(1. + penalty(_str));
     }
 
     void evaluateFitness(){
@@ -103,7 +129,7 @@ private:
 
         auto var(.0);
         for(auto str:population_){
-            var += std::pow((str.getFit() - fitness_avg), 2);
+            var += std::pow((str.getFit() - fitness_avg), 2.);
         }
 
         return std::sqrt(var);
@@ -164,13 +190,16 @@ private:
     // generator
     std::mt19937 rand_gen_;
     // distribution
-    std::bernoulli_distribution rand_bit_;    
-    inline double randProb() const{
-        std::uniform_real_distribution<double > rand_prob(0,1);
+    inline int randBit(){
+        std::bernoulli_distribution rand_bit;
+        return rand_bit(rand_gen_);
+    }
+    inline double randProb(){
+        std::uniform_real_distribution<double > rand_prob(.0, 1.);
         return rand_prob(rand_gen_);
     }
 
-    inline double uniIntDist(int _lower, int _upper) const{
+    inline double uniIntDist(int _lower, int _upper){
         std::uniform_int_distribution<int > rand_number(_lower, _upper);
         return rand_number(rand_gen_);
     }
@@ -182,10 +211,12 @@ private:
 
 };
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-GeneticAlgorithm<PopulationSize,
+GeneticAlgorithm<Type,
+                 PopulationSize,
                  NumDesignVariables,
                  DesignVariableSize>::GeneticAlgorithm()
     : rand_gen_(std::random_device{}())
@@ -199,39 +230,43 @@ GeneticAlgorithm<PopulationSize,
 
 }
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-GeneticAlgorithm<PopulationSize,
+GeneticAlgorithm<Type,
+                 PopulationSize,
                  NumDesignVariables,
                  DesignVariableSize>::~GeneticAlgorithm(){
 
 }
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-void GeneticAlgorithm<PopulationSize,
+void GeneticAlgorithm<Type,
+                      PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::initialization(){
 
     for(auto& str:population_){
         DV* dv(str.designVariables());
         for(auto& v:(*dv)){
-            v.value = rand_bit_(rand_gen_);
+            v.value = randBit();
         }
     }
 }
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-void GeneticAlgorithm<PopulationSize,
+void GeneticAlgorithm<Type,
+                      PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::reproduction(){
-
-    auto total_fitness(totalFitness());
-
+    auto total_fitness( totalFitness() );
     population_.front().setProb() = population_.front().getFit() / total_fitness;
     population_.front().setCumulativeProb() = population_.front().getProb();
     for(int i(1); i < (DesignVariableSize * NumDesignVariables); i++){
@@ -241,9 +276,8 @@ void GeneticAlgorithm<PopulationSize,
     }
 
     Population mating_pool(PopulationSize);
-
     while(mating_pool.size() < PopulationSize){
-        auto prob(randProb());
+        auto prob( randProb() );
         if(prob > .0 && prob <= population_.front().getCumulativeProb()){
             mating_pool.push_back(population_.front());
             continue;
@@ -259,45 +293,41 @@ void GeneticAlgorithm<PopulationSize,
     }
 }
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-void GeneticAlgorithm<PopulationSize,
+void GeneticAlgorithm<Type,
+                      PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::crossover(){
-    constexpr int MINIMUM_SITE(.25 * PopulationSize);
+    constexpr int MINIMUM_SITE(.25 * (float)NumDesignVariables);
 
     std::vector<std::pair<size_t, size_t > > selected_str;
 
     for(int i(0); i < PopulationSize; i++){
         if(randProb() > crossover_prob_)
-            selected_str.push_back(std::make_pair(i, uniIntDist(MINIMUM_SITE, PopulationSize - 1)));
+            selected_str.push_back(std::make_pair(i, uniIntDist(MINIMUM_SITE, NumDesignVariables - 1)));
     }
     // to make the loop index, just donate a little bit of memory
     selected_str.push_back(selected_str.front());
 
     for(size_t i(0); i < (selected_str.size() - 1); i++){
-        DV* dv1(population_[selected_str[i].first].designVariables());
-        DV* dv2(population_[selected_str[i+1].first].designVariables());
+        DV* dv1( population_[selected_str[i].first].designVariables() );
+        DV* dv2 (population_[selected_str[i+1].first].designVariables() );
 
-//        DV sub;
-        using SubGAString = std::vector<GAStr::Allele >;
-        SubGAString sub(PopulationSize - selected_str[i].first);
-//        SubDV* sub_dv = sub.designVariables();
-//        sub.resize(PopulationSize - selected_str[i].first);
-        std::transform(sub_dv->begin(), dv1->begin() + selected_str[i].second, dv1->end(), [](GAStr::Allele allele){return allele;});
-
-        std::transform(dv1->begin(), dv2->begin() + selected_str[i+1].first, dv2->end(), [](GAStr::Allele allele){return allele;});
-        std::transform(dv2->begin(), sub_dv->begin(), sub_dv->end(), [](GAStr::Allele allele){return allele;});
-
+        std::swap_ranges(dv1->begin() + selected_str[i].second, dv1->end(),
+                         dv2->begin() + selected_str[i].second);
     }
 
 }
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-void GeneticAlgorithm<PopulationSize,
+void GeneticAlgorithm<Type,
+                      PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::mutation(){
     // bit-wise mutation
@@ -310,10 +340,12 @@ void GeneticAlgorithm<PopulationSize,
     }
 }
 
-template <int PopulationSize,
+template <typename Type,
+          int PopulationSize,
           int NumDesignVariables,
           int DesignVariableSize>
-void GeneticAlgorithm<PopulationSize,
+void GeneticAlgorithm<Type,
+                      PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::generations(){
     for(int gen(0); gen < num_generations_; gen++){
@@ -322,7 +354,7 @@ void GeneticAlgorithm<PopulationSize,
         mutation();
 
         if(calcStdDev() < std_dev_tol_)
-            break;
+            break;;
     }
 
 }

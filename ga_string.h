@@ -6,27 +6,18 @@
 
 #include <chromosome.h>
 
-template <int NumAlleles>
+template <typename Allele, int NumAlleles>
 class GAString{
 public:
-    struct BinaryAllele{
-        using byte = unsigned char;
-        byte value;
-        BinaryAllele(){
-            value = 0;
-        }
-        BinaryAllele& operator~(){
-            value = (value) ? 0 : 1;
-            return *this;
-        }
-    };
-
-    using Allele = BinaryAllele;
-    using Chr = Chromosome<BinaryAllele, NumAlleles >;
+    using Chr = Chromosome<Allele, NumAlleles >;
 
 public:
     GAString(){
         dv_ = chromosome_.designVariables();
+    }
+
+    ~GAString(){
+
     }
 
     inline typename Chr::DesignVariables* designVariables(){
