@@ -39,7 +39,7 @@ public:
         double value;
         ContinuousAllele():value(dist_(rand_gen_)){}
         ContinuousAllele& operator~(){
-            value = (2. * dist_(rand_gen_) - 1.) * 100.;
+            value = (2. * dist_(rand_gen_) - 1.);
             return *this;
         }
     };
@@ -50,7 +50,7 @@ public:
                                 BinaryAllele>::type;
     using GAStr = GAString<Allele, DesignVariableSize * NumDesignVariables>;
     using DV = typename GAStr::Chr::DesignVariables;    
-    using SubGAString = std::vector<Allele >;
+    using SubGAString = std::vector<Allele>;
 
     struct InequalityConstraint{
     public:
@@ -67,7 +67,7 @@ public:
     void generations();
 
 private:
-    using Population = std::vector<GAStr >;
+    using Population = std::vector<GAStr>;
 
     Population population_;    
 
@@ -76,11 +76,11 @@ private:
     void crossover();
     void mutation();    
 
-    using Objective = std::function<double(GAStr) >;
+    using Objective = std::function<double(GAStr)>;
     Objective objective_;
 
-    using IneqCstrs = std::vector<InequalityConstraint >;
-    using EqCstrs = std::vector<EqualityConstraint >;
+    using IneqCstrs = std::vector<InequalityConstraint>;
+    using EqCstrs = std::vector<EqualityConstraint>;
 
     IneqCstrs ineq_cstrs_;
     EqCstrs eq_cstrs_;
@@ -91,7 +91,7 @@ private:
 
         auto pen(.0);
         for(auto ineq:ineq_cstrs_){
-            pen = bracketing(ineq.constraint(_str));
+            pen = bracketing( ineq.constraint(_str) );
             result += ineq.gain * pen * pen;
         }
 
@@ -108,7 +108,7 @@ private:
     }
 
     inline double calcFitness(const GAStr& _str){
-        return 1./(1. + penalty(_str));
+        return 1./( 1. + penalty(_str) );
     }
 
     void evaluateFitness(){
@@ -327,7 +327,7 @@ void GeneticAlgorithm<Type,
 
     for(int i(0); i < PopulationSize; i++){
         if(randProb() > crossover_prob_)
-            selected_str.push_back(std::make_pair(i, uniIntDist(MINIMUM_SITE, NumDesignVariables - 1)));
+            selected_str.push_back(std::make_pair(i, uniIntDist(MINIMUM_SITE, (DesignVariableSize * NumDesignVariables) - 1)));
     }
     // to make the loop index, just donate a little bit of memory
     selected_str.push_back(selected_str.front());
@@ -351,10 +351,11 @@ void GeneticAlgorithm<Type,
                       NumDesignVariables,
                       DesignVariableSize>::mutation(){
     // bit-wise mutation
+    std::size_t site(0);
     for(auto& str:population_){
         if(randProb() > mutation_prob_){
-            size_t site(uniIntDist(0, DesignVariableSize - 1));
-            DV* dv(str.designVariables());
+            site = uniIntDist(0, (DesignVariableSize * NumDesignVariables) - 1);
+            DV* dv( str.designVariables() );
             (*dv)[site] = ~(*dv)[site];
         }
     }
@@ -368,13 +369,17 @@ void GeneticAlgorithm<Type,
                       PopulationSize,
                       NumDesignVariables,
                       DesignVariableSize>::generations(){
-    for(int gen(0); gen < num_generations_; gen++){
+    int gen(0);
+    auto fit_std_dev(.0);
+    for(; gen < num_generations_; gen++){
         reproduction();
         crossover();
         mutation();
-
-        if(calcStdDev() < std_dev_tol_)
-            break;;
+        fit_std_dev = calcStdDev();
+        if(fit_std_dev < std_dev_tol_){
+            break;
+        }
     }
-
+    std::cout << "Finished at " << gen << " generations." << std::endl;
+    std::cout << "Fitness std. dev : " << fit_std_dev << std::endl;
 }

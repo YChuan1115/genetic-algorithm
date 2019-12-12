@@ -8,7 +8,7 @@
 
 #include "genetic_algorithm.h"
 
-constexpr auto POPULATION_SIZE(20);
+constexpr auto POPULATION_SIZE(30);
 constexpr auto NUM_DESIGN_VARIABLES(6);
 constexpr auto DESIGN_VARIABLE_SIZE(1);
 
@@ -100,9 +100,9 @@ int main(int argc, char** argv){
 
     GA genetic;
 
-    genetic.setCrossoverProb() = .7;
-    genetic.setMutationProb() = .1;
-    genetic.setNumGenerations() = 10;
+    genetic.setCrossoverProb() = .5;
+    genetic.setMutationProb() = .2;
+    genetic.setNumGenerations() = 200;
     genetic.setStdDevTol() = .1;
     genetic.setObjective() = [=](GA::GAStr x){
         GA::DV* dv = x.designVariables();
@@ -139,6 +139,9 @@ int main(int argc, char** argv){
 
     //test print
     std::cout << "Possible system : " << std::endl;
+    arma::mat best_est_A;
+    arma::mat best_est_B;
+    auto best_fitness(.0);
     for(auto p:genetic.population()){
         GA::DV* dv = p.designVariables();
         arma::mat est_A;
@@ -151,7 +154,17 @@ int main(int argc, char** argv){
               << (*dv)[5].value << arma::endr;
         est_B.print("Est. B : ");
         std::cout << "==========================================" << std::endl;
+
+        if(p.getFit() > best_fitness){
+            best_fitness = p.getFit();
+            best_est_A = est_A;
+            best_est_B = est_B;
+        }
     }
+
+    best_est_A.print("Best A : ");
+    best_est_B.print("Best B : ");
+    std::cout << "With fitness : " << best_fitness << std::endl;
 
     return 0;
 }
