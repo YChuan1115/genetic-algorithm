@@ -12,9 +12,7 @@ constexpr auto POPULATION_SIZE(20);
 constexpr auto NUM_DESIGN_VARIABLES(6);
 constexpr auto DESIGN_VARIABLE_SIZE(1);
 
-
-
-using GA = GeneticAlgorithm<POPULATION_SIZE, NUM_DESIGN_VARIABLES, DESIGN_VARIABLE_SIZE >;
+using GA = GeneticAlgorithm<double, POPULATION_SIZE, NUM_DESIGN_VARIABLES, DESIGN_VARIABLE_SIZE >;
 
 int main(int argc, char** argv){
 
@@ -105,7 +103,7 @@ int main(int argc, char** argv){
     genetic.setCrossoverProb() = .7;
     genetic.setMutationProb() = .1;
     genetic.setNumGenerations() = 10;
-    genetic.setStdDevTol() = 1.;
+    genetic.setStdDevTol() = .1;
     genetic.setObjective() = [=](GA::GAStr x){
         GA::DV* dv = x.designVariables();
         arma::mat est_A;

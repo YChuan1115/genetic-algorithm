@@ -32,22 +32,24 @@ public:
     };
 
     struct ContinuousAllele{
+    private:
+        static std::mt19937 rand_gen_;
+        static std::uniform_real_distribution<double> dist_;
+    public:
         double value;
-        ContinuousAllele():value(.0){}
+        ContinuousAllele():value(dist_(rand_gen_)){}
         ContinuousAllele& operator~(){
-            value = randProb() * 100.;
+            value = (2. * dist_(rand_gen_) - 1.) * 100.;
             return *this;
         }
     };
 
-    using GAStr = GAString<
-                    std::conditional<
-                        std::is_same<Type, double>::value,
-                        ContinuousAllele,
-                        BinaryAllele>,
-                    DesignVariableSize * NumDesignVariables>;
-    using DV = typename GAStr::Chr::DesignVariables;
-    using Allele = typename GAStr::Allele;
+    using Allele = typename std::conditional<
+                                std::is_same<Type, double>::value,
+                                ContinuousAllele,
+                                BinaryAllele>::type;
+    using GAStr = GAString<Allele, DesignVariableSize * NumDesignVariables>;
+    using DV = typename GAStr::Chr::DesignVariables;    
     using SubGAString = std::vector<Allele >;
 
     struct InequalityConstraint{
@@ -210,6 +212,24 @@ private:
     int num_generations_;
 
 };
+
+template <typename Type,
+          int PopulationSize,
+          int NumDesignVariables,
+          int DesignVariableSize>
+std::mt19937 GeneticAlgorithm<Type,
+                 PopulationSize,
+                 NumDesignVariables,
+                 DesignVariableSize>::ContinuousAllele::rand_gen_( std::random_device{}() );
+
+template <typename Type,
+          int PopulationSize,
+          int NumDesignVariables,
+          int DesignVariableSize>
+std::uniform_real_distribution<double> GeneticAlgorithm<Type,
+                 PopulationSize,
+                 NumDesignVariables,
+                 DesignVariableSize>::ContinuousAllele::dist_(.0, 1.);
 
 template <typename Type,
           int PopulationSize,
