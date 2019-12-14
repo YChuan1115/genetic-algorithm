@@ -8,7 +8,7 @@
 
 #include "genetic_algorithm.h"
 
-constexpr auto POPULATION_SIZE(30);
+constexpr auto POPULATION_SIZE(1000);
 constexpr auto NUM_DESIGN_VARIABLES(6);
 constexpr auto DESIGN_VARIABLE_SIZE(1);
 
@@ -100,9 +100,9 @@ int main(int argc, char** argv){
 
     GA genetic;
 
-    genetic.setCrossoverProb() = .5;
-    genetic.setMutationProb() = .2;
-    genetic.setNumGenerations() = 200;
+    genetic.setCrossoverProb() = .05;
+    genetic.setMutationProb() = .1;
+    genetic.setNumGenerations() = 1000;
     genetic.setStdDevTol() = .1;
     genetic.setObjective() = [=](GA::GAStr x){
         GA::DV* dv = x.designVariables();
@@ -110,61 +110,102 @@ int main(int argc, char** argv){
         est_A << (*dv)[0].value << (*dv)[1].value << arma::endr
               << (*dv)[2].value << (*dv)[3].value << arma::endr;
 
+//        est_A.print("Est. A : ");
+
         arma::mat est_B;
         est_B << (*dv)[4].value << arma::endr
               << (*dv)[5].value << arma::endr;
+
+//        est_B.print("Est. B : ");
 
         arma::mat theta = arma::join_vert( est_A.t() * nom_C.t(), est_B.t() * nom_C.t() );
 
         arma::mat error( output_data -  psi*theta );
         auto val = arma::norm(error, 2);
+//        std::cout << "Error mag. : " << val << std::endl;
         return val;
     };
 
-    genetic.addInequalityConstraint(
-                GA::InequalityConstraint{[](GA::GAStr x){
-                                             GA::DV* dv = x.designVariables();
-                                             return (*dv)[0].value + (*dv)[3].value;
-                                         }, .5});
+//    genetic.addInequalityConstraint(
+//                GA::InequalityConstraint{[](GA::GAStr x){
+//                                             GA::DV* dv = x.designVariables();
+//                                             return (*dv)[0].value + (*dv)[3].value;
+//                                         }, 1.0});
+
+//    genetic.addInequalityConstraint(
+//                GA::InequalityConstraint{[](GA::GAStr x){
+//                                             GA::DV* dv = x.designVariables();
+//                                             return std::pow((*dv)[0].value + (*dv)[3].value, 2.)
+//                                                    - 4. * ( ((*dv)[0].value * (*dv)[3].value) - ((*dv)[1].value * (*dv)[2].value) );
+//                                         }, 1.0});
 
     genetic.addInequalityConstraint(
                 GA::InequalityConstraint{[](GA::GAStr x){
                                              GA::DV* dv = x.designVariables();
-                                             return std::pow((*dv)[0].value + (*dv)[3].value, 2.)
-                                                    - 4. * (*dv)[1].value * (*dv)[2].value;
-                                         }, .5});
+                                             auto b = (*dv)[0].value + (*dv)[3].value;
+                                             auto discriminant = std::pow(b, 2.)
+                                                    - 4. * ( ((*dv)[0].value * (*dv)[3].value) - ((*dv)[1].value * (*dv)[2].value) );
+                                             auto ret(.0); //-- RVO
+                                             if(discriminant < .0){ //-- if complex number
+                                                 ret = std::sqrt( std::pow(b * .5, 2) + (discriminant * .25) );
+                                             }else{
+                                                 ret = std::fabs( (b + std::sqrt(discriminant)) * .5 ) + std::fabs( (b - std::sqrt(discriminant)) * .5 );
+                                             }
+                                             return ret;
+                                         }, 0.01});
 
+    std::cout << "Preparing GA..." << std::endl;
     genetic.initialization();
+    std::cout << "Solving..." << std::endl;
     genetic.generations();
 
     //test print
     std::cout << "Possible system : " << std::endl;
     arma::mat best_est_A;
     arma::mat best_est_B;
+    arma::mat worst_est_A;
+    arma::mat worst_est_B;
     auto best_fitness(.0);
+    auto worst_fitness(1.);
     for(auto p:genetic.population()){
         GA::DV* dv = p.designVariables();
         arma::mat est_A;
         est_A << (*dv)[0].value << (*dv)[1].value << arma::endr
               << (*dv)[2].value << (*dv)[3].value << arma::endr;
-        est_A.print("Est. A : ");
+//        est_A.print("Est. A : ");
 
         arma::mat est_B;
         est_B << (*dv)[4].value << arma::endr
               << (*dv)[5].value << arma::endr;
-        est_B.print("Est. B : ");
-        std::cout << "==========================================" << std::endl;
+//        est_B.print("Est. B : ");
+//        std::cout << "==========================================" << std::endl;
 
         if(p.getFit() > best_fitness){
             best_fitness = p.getFit();
             best_est_A = est_A;
             best_est_B = est_B;
         }
+
+        if(p.getFit() < worst_fitness){
+            worst_est_A = est_A;
+            worst_est_B = est_B;
+            worst_fitness = p.getFit();
+        }
     }
 
     best_est_A.print("Best A : ");
     best_est_B.print("Best B : ");
     std::cout << "With fitness : " << best_fitness << std::endl;
+
+    worst_est_A.print("Worst A : ");
+    worst_est_B.print("Worst B : ");
+    std::cout << "With fitness : " << worst_fitness << std::endl;
+
+    arma::cx_vec eigval;
+    arma::cx_mat eigvec;
+    arma::eig_gen(eigval, eigvec, best_est_A);
+
+    eigval.print("Eigenvalue : ");
 
     return 0;
 }

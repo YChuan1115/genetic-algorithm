@@ -8,15 +8,18 @@
 #include <array>
 #include <vector>
 
-template <typename Allele, int NumAllele>
+template <typename Allele, int num_allele>
 class Chromosome{
 public:
-    using DesignVariables = std::array<Allele, NumAllele >;
+    using DesignVariables = std::array<Allele, num_allele >;
 
     DesignVariables* designVariables(){return design_variables_;}
 
-    Chromosome(){
-        design_variables_ = new DesignVariables;
+    Chromosome()
+        : design_variables_ (new DesignVariables)
+        , fit(.0)
+        , probability(.0)
+        , cumulative_prob(.0){
     }
 
     ~Chromosome(){

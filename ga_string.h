@@ -6,10 +6,10 @@
 
 #include <chromosome.h>
 
-template <typename Allele, int NumAlleles>
+template <typename Allele, int num_allele>
 class GAString{
 public:
-    using Chr = Chromosome<Allele, NumAlleles >;
+    using Chr = Chromosome<Allele, num_allele >;
 
 public:
     GAString(){
