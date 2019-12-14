@@ -366,22 +366,18 @@ void GeneticAlgorithm<Type,
         DV* dv2( population_[selected_str[i+1].first].designVariables() );
         DV new_dv1(*dv1);
         DV new_dv2(*dv2);
+
 #ifdef CROSSOVER_DEBUG
         std::cout << "Before : " << std::endl;
         std::cout << (*dv1)[0].value << ";" << (*dv1)[1].value << ";" << (*dv1)[2].value << ";" << (*dv1)[3].value << ";" << (*dv1)[4].value << ";" << (*dv1)[5].value << std::endl;
         std::cout << (*dv2)[0].value << ";" << (*dv2)[1].value << ";" << (*dv2)[2].value << ";" << (*dv2)[3].value << ";" << (*dv2)[4].value << ";" << (*dv2)[5].value << std::endl;
 #endif
-//        std::cout << "1.F : " << selected_str[i].first << " ; " <<  selected_str[i].second << std::endl;
-//        std::cout << "2.F : " << selected_str[i+1].first << " ; " <<  selected_str[i+1].second << std::endl;
-//        std::swap_ranges(dv1->begin() + selected_str[i].second, dv1->end(),
-//                         dv2->begin() + selected_str[i].second);
-
         std::swap_ranges(new_dv1.begin() + selected_str[i].second, new_dv1.end(),
                          new_dv2.begin() + selected_str[i].second);
 
         DV* target_new_dv1 = population_[target_start_idx].designVariables();
         *target_new_dv1 = new_dv1;
-        DV* target_new_dv2 = population_[target_start_idx].designVariables();
+        DV* target_new_dv2 = population_[target_start_idx+1].designVariables();
         *target_new_dv2 = new_dv2;
         target_start_idx += 2;
 //        std::cout << "3. " << idx2 << std::endl;
