@@ -7,6 +7,8 @@ My idea is to identify system with GA.
 
 The concept was inspired by estimating plant with Recursive Least Square Method.
 
+See documentation for further information.
+
 ### Reference
 > S.S. Rao, *Optimization Engineering Theory and Practice*, Hoboken, NJ: Wiley, 2009.
 
